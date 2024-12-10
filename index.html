@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Technolab ISTA</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="script-src 'self' 'unsafe-inline';"
+    />
+    <style>
+      #infos {
+        display: none;
+      }
+      input {
+        max-width: 100px;
+        border-radius: 6px;
+      }
+      body {
+        background-image: url("fond-3d-cubes-blancs.jpg");
+        background-attachment: fixed;
+        background-size: 100%;
+        overflow: hidden;
+      }
+      h1 {
+        color: coral;
+        font-family: Georgia, "Times New Roman", Times, serif;
+      }
+      .button_analyse {
+        background-color: rgb(53, 173, 5);
+        font-weight: bold;
+        color: #fff;
+        border-radius: 10px;
+        padding: 4px 8px;
+        border: none;
+        outline: none;
+        box-shadow: 2px 4px rgb(91, 91, 91);
+        font-size: 1.4rem;
+      }
+      label {
+        font-family: Georgia, "Times New Roman", Times, serif;
+        color: rgb(70, 70, 70);
+        font-weight: 700;
+      }
+
+      #resultPreview {
+        margin-top: 20px;
+        text-align: center;
+        align-items: center;
+        font-family: Georgia, "Times New Roman", Times, serif;
+        font-weight: bold;
+
+        color: white;
+        font-weight: 300;
+      }
+      /* to day */
+      header {
+        display: flex;
+        justify-content: space-evenly;
+        margin: 5px 15px;
+        align-items: center;
+      }
+
+      li {
+        list-style-type: none;
+      }
+      #donnee {
+        display: none;
+      }
+      h1 {
+        flex: 1;
+      }
+      .tag_button {
+        display: flex;
+        padding: 5px 8px;
+        background-color: coral;
+        color: white;
+        border-radius: 6px;
+        border: none;
+        outline: none;
+      }
+      .active {
+        display: block;
+      }
+      .nos_button {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 30px;
+      }
+      .hidden {
+        transition: 1000s;
+        display: none;
+      }
+      #message2 {
+        background-color: green;
+        color: white;
+      }
+
+      .drop-zone {
+        border: 2px dashed #ccc;
+        border-radius: 10px;
+        padding: 50px;
+        text-align: center;
+        font-family: Arial, sans-serif;
+        color: #333;
+        margin-bottom: 20px;
+      }
+      .drop-zone.dragover {
+        border-color: #000;
+        background-color: #f0f0f0;
+      }
+      .file-list {
+        margin-top: 10px;
+        font-family: Arial, sans-serif;
+      }
+      .file-list li {
+        list-style: none;
+        padding: 5px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Technolab</h1>
+      <div class="nos_button">
+        <button type="button" class="tag_button" id="traitement">
+          Traitement
+        </button>
+        <button type="button" class="tag_button" id="information">
+          Donnéés
+        </button>
+        <button type="button" class="tag_button" id="info">Info</button>
+      </div>
+    </header>
+    <div id="partie_changeable"></div>
+    <div id="analyse">
+      <form id="uploadForm" method="post" enctype="multipart/form-data">
+        <div class="drop-zone" id="dropZone">
+          <img src="/home/ba/Téléchargements/508-icon.png" alt="" /><br />
+          Glissez-déposez vos fichiers ici ou cliquez pour sélectionner des
+          fichiers
+        </div>
+        <input
+          type="file"
+          id="imageInput"
+          name="files"
+          style="display: none"
+          multiple
+        />
+        <ul class="file-list" id="fileList"></ul>
+        <button type="button" id="button" class="button_analyse">
+          Analyser le fichier excel
+        </button>
+      </form>
+      <div class="method">
+        <p>
+          <input type="radio" name="method" id="method1" /><label for="method1"
+            >Analyser les deux sessions ensemble</label
+          ><br />
+          <input type="radio" name="method" id="method2" /><label for="method2"
+            >Analyser les deux sessions séparement</label
+          >
+        </p>
+      </div>
+    </div>
+
+    <div id="donnee">
+      <div id="input1">
+        <label for="nom_directeur">Renseigner le nom du directeur</label>
+        <input type="text" id="nom_directeur" placeholder="Name" />
+        <button type="button" id="change_directeur">
+          Changer le directeur
+        </button>
+      </div>
+      <br />
+      <div id="input2">
+        <label for="emplacement">Choisir lemplacement du fichier</label>
+        <button
+          type="file"
+          webkitdirectory
+          id="selectDirectoryBtn"
+          placeholder="Adresse"
+        >
+          Changer
+        </button>
+        <!-- <button type="button"  id="change_emplacement">Changer l'emplacement</button> -->
+      </div>
+      <br />
+      <p id="message2"></p>
+    </div>
+    <div id="infos">
+      <p>
+        Pour changer le nom du directeur ou l'emplacement du fichier cliquer sur
+        <strong>Données</strong>
+      </p>
+      <p>
+        Pour Analyser le fichier click sur <strong>Choose file</strong> ensuite
+        selectionnez le fichier excel puis cliquez sur le bouton
+        <strong>Analysez le fichier excel</strong>
+      </p>
+      <p>
+        En cas de disfonctionnement, contactez nous au: +223 79994640 / +223
+        79770735
+      </p>
+    </div>
+    <div id="resultPreview"></div>
+
+    <script type="module">
+      let respath;
+      const { ipcRenderer, remote } = require("electron");
+      const path = require("path");
+      const resultPreview = document.getElementById("resultPreview");
+      const message2 = document.getElementById("message2");
+
+      const method1 = document.getElementById("method1");
+      const method2 = document.getElementById("method2");
+      let i;
+      let fin;
+
+      document
+        .getElementById("selectDirectoryBtn")
+        .addEventListener("click", () => {
+          // document.write("yessss")
+          ipcRenderer.send("open-directory-dialog");
+        });
+
+      ipcRenderer.on("selected-directory", (event, path) => {
+        const new_path = path.replace(/\\/g, "/");
+        const myData_empl = {
+          emplacement: new_path,
+        };
+        const objectEmplToJson = JSON.stringify(myData_empl);
+        writeFileSync("./emplfs.json", objectEmplToJson);
+        message2.innerHTML = "Emplacement enregistrer avec succès";
+
+        setTimeout(() => {
+          message2.classList.add("hidden");
+        }, 2000);
+        message2.classList.remove("hidden");
+      });
+
+      const { readFileSync, writeFileSync } = require("fs");
+      const nom_directeur = document.getElementById("nom_directeur");
+      const emplacement = document.getElementById("emplacement");
+      const change_directeur = document.getElementById("change_directeur");
+      const change_emplacement = document.getElementById("change_emplacement");
+
+      change_directeur.addEventListener("click", () => {
+        const nom = nom_directeur.value;
+        const myData_nom = {
+          name: nom,
+        };
+        const objectNomToJson = JSON.stringify(myData_nom);
+        writeFileSync("./nomfs.json", objectNomToJson);
+        message2.innerHTML =
+          "Le nom du directeur a été enregistrer avec succès";
+
+        setTimeout(() => {
+          message2.classList.add("hidden");
+          nom_directeur.value = "";
+        }, 2000);
+
+        message2.classList.remove("hidden");
+      });
+
+      document.getElementById("button").addEventListener("click", () => {
+        const input = document.getElementById("imageInput");
+        var nom = [];
+        var filePath = [];
+        fin = input.files.length;
+        const directeurrr = JSON.parse(readFileSync("./nomfs.json", "utf-8"));
+
+        for (i = 0; i < fin; i++) {
+          nom.push(input.files[i].name);
+          filePath.push(input.files[i].path);
+        }
+
+        const emplacementt = JSON.parse(readFileSync("./emplfs.json", "utf-8"));
+
+        // resultPreview.innerHTML = "Le fichier session a été enregistrer avec succès"
+        if (
+          emplacementt.emplacement != "" &&
+          emplacementt.emplacement != undefined
+        ) {
+          if (directeurrr.name != "" && directeurrr.name != undefined) {
+            if (method1.checked) {
+              try {
+                for (i = 0; i < fin; i++) {
+                  ipcRenderer.send(
+                    "process-image",
+                    filePath[i],
+                    directeurrr.name,
+                    emplacementt.emplacement,
+                    nom[i]
+                  );
+                }
+                console.log(fin);
+                for (i = 0; i < fin; i++) {
+                  console.log(input.files[i].name);
+                  console.log(input.files[i].path);
+                }
+                resultPreview.style.background = "green";
+                if (resultPreview.classList) {
+                  resultPreview.classList.remove("hidden");
+                }
+                if (fin > 1) {
+                  resultPreview.innerHTML = `Les fichiers de sessions ont bien été créer à ${emplacementt.emplacement}`;
+                } else {
+                  resultPreview.innerHTML = `Le fichier de session a bien été créer à ${emplacementt.emplacement}`;
+                }
+                setTimeout(() => {
+                  resultPreview.classList.add("hidden");
+                }, 1000);
+              } catch (e) {
+                resultPreview.style.background = "red";
+                resultPreview.innerHTML =
+                  "Quelque chose s'est mal passée! Réessayez!!";
+              }
+            }
+
+            //A travaulerrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
+            else if (method2.checked) {
+              try {
+                for (i = 0; i < fin; i++) {
+                  ipcRenderer.send(
+                    "process-file",
+                    filePath[i],
+                    directeurrr.name,
+                    emplacementt.emplacement,
+                    nom[i]
+                  );
+                }
+                resultPreview.style.background = "green";
+                if (resultPreview.classList) {
+                  resultPreview.classList.remove("hidden");
+                }
+                if (fin > 1) {
+                  resultPreview.innerHTML = `Les fichiers de sessions ont bien été créer à ${emplacementt.emplacement}`;
+                } else {
+                  resultPreview.innerHTML = `Le fichier session a bien été créer à ${emplacementt.emplacement}`;
+                }
+                setTimeout(() => {
+                  resultPreview.classList.add("hidden");
+                }, 1000);
+              } catch (e) {
+                resultPreview.style.background = "red";
+                resultPreview.innerHTML =
+                  "Quelque chose s'est mal passée! Réessayez!!";
+              }
+            } else {
+              resultPreview.style.background = "red";
+              resultPreview.innerHTML =
+                "Veuillez séléctionner une méthode d'analyse";
+            }
+          } else {
+            resultPreview.style.background = "red";
+            resultPreview.innerHTML = "Le nom du directeur est omis!!";
+          }
+        } else {
+          resultPreview.style.background = "red";
+          resultPreview.innerHTML = "L'emplacement du fichier est omis!!";
+        }
+      });
+    </script>
+    <script src="script2.js"></script>
+  </body>
+</html>
